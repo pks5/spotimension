@@ -1,0 +1,36 @@
+{
+    "tags" : {
+        "04b9cbca5b4980" : {
+            "name" : "Krusty the Clown",
+            "image" : "https://media.giphy.com/media/RlkTUKOZaWsUr2cKyb/giphy.gif",
+            "background": "https://wallpaperaccess.com/full/2436267.jpg",
+            "audio": {
+                "spotify" : {
+                    "uris": ["spotify:track:6vwpojViJ10vXahuh4admQ"]
+                }
+            }
+        },
+
+        "0454b7225b4981" : {
+            "name" : "Somebody",
+            "image": "https://i.giphy.com/media/l4q7VhGsL6BnXJrc4/giphy.webp",
+            "background": "https://legogamessupport.wbgames.com/hc/article_attachments/360100220334/classicspace.jfif",
+            "audio": {
+                "spotify" : {
+                    "uris": ["spotify:track:3JkoG7vTBfOE3ZsJKtNWOf"]
+                }
+            }
+        },
+
+        "04a765daed4a80" : {
+            "name" : "Yoshi",
+            "image": "https://media.giphy.com/media/1ORxrBqFw1fVu/giphy.gif",
+            "background": "https://www.itl.cat/pngfile/big/35-356231_download-wallpaper-super-mario-yoshi.jpg",
+            "audio": {
+                "spotify" : {
+                    "uris": ["spotify:track:6AncmqdAj9GMPpMviKf8IH"]
+                }
+            }
+        }
+    }
+}

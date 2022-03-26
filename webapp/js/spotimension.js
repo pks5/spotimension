@@ -54,6 +54,52 @@ script.src = scriptLocation;
 script.addEventListener('load', fnConnect);
 document.body.appendChild(script);
 
+
+document.getElementById("test-btn").addEventListener("click", () => {
+    const client_id = "9b64281617ef4fc8b84a0eb6e8d9e18f";
+
+
+    var authorizeUrl = 'https://accounts.spotify.com/authorize';
+    authorizeUrl += '?response_type=code';
+    authorizeUrl += '&client_id=' + encodeURIComponent(client_id);
+    authorizeUrl += '&scope=' + encodeURIComponent("user-read-playback-state,user-modify-playback-state,user-read-currently-playing");
+    authorizeUrl += '&redirect_uri=' + encodeURIComponent("REDIRECT_URI");
+    authorizeUrl += '&state=' + encodeURIComponent("STATE");
+
+    const requestOptions = {
+        method: 'POST',
+       // credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+            {
+                authorizeUrl:authorizeUrl,
+                previousUrl:location.href,
+                featureGuid:"com.machineblocks.machines.spotimension",
+                machineId:Spotimension.m_sSelectedDeviceMachineId,
+                deviceAppGuid:"com.machineblocks.machines.spotimension.phapp",
+                scriptName:"player.py"
+            }
+        )
+    };
+    fetch('http://mbp-pks.local:8787/system/feature/auth/start', requestOptions)
+        .then(response => response.json())
+        .then((data) => {
+           console.log(data)
+            location.href = data.authorizeUrl;
+        });
+});
+
+document.getElementById("devices-btn").addEventListener("click", () => {
+    Spotimension.requestDevices();
+});
+
+document.getElementById("spotify-device-select").addEventListener("change", (ev) => {
+    ev.target.disabled = true;
+    console.log("Activating device: %s", ev.target.value);
+    Spotimension.transferPlayback(ev.target.value);
+    
+});
+
 let Spotimension = {};
 
 Spotimension.log = function (sMessage, sLevel) {
@@ -65,6 +111,12 @@ Spotimension.init = function () {
     elSelect.addEventListener("change", Spotimension.onSelectDevice);
 
     Spotimension.elSelect = elSelect;
+
+    fetch('data/tags.json')
+         .then(response => response.json())
+        .then(data => {
+            Spotimension.tags = data.tags;
+        });
 };
 
 Spotimension.onReceiveDevices = function (oData) {
@@ -75,13 +127,14 @@ Spotimension.onReceiveDevices = function (oData) {
 
     elSelect.innerHTML = "";
 
-    elOpt = document.createElement('option');
+    let elOpt = document.createElement('option');
     elOpt.innerHTML = "Select Device";
     elSelect.appendChild(elOpt);
 
     for (let i = 0; i < oData.devices.length; i++) {
-        let oDevice = oData.devices[i],
-            elOpt = document.createElement('option');
+        let oDevice = oData.devices[i];
+        
+        elOpt = document.createElement('option');
 
         elOpt.value = oDevice.machineId;
         elOpt.innerHTML = oDevice.hostName;
@@ -182,14 +235,9 @@ Spotimension.selectDevice = function (sMachineId) {
     */
     oFeatureHub.unsubscribe('deviceConsole');
     oFeatureHub.subscribe('deviceConsole', sMachineId + "/console", function (oData, mHeaders) {
-        let sColor = '\x1b[37m';
-        if (oData.level === "error") {
-            sColor = '\x1b[1;31m';
-        }
-
         let sPrefix = "[" + sMachineId.substr(0, 6) + "] ";
 
-        term.writeln(sColor + sPrefix + oData.args[0]);
+        console.log(sPrefix + oData.args[0]);
     });
 
     /*
@@ -199,6 +247,16 @@ Spotimension.selectDevice = function (sMachineId) {
     oFeatureHub.subscribe('deviceStatus', sMachineId, Spotimension.onReceiveDeviceStatus);
 
     oFeatureHub.send({ method: "requestStatus" }, {});
+
+    oFeatureHub.unsubscribe("player");
+    oFeatureHub.subscribe("player", sMachineId + "/app/" + "com.machineblocks.machines.spotimension.phapp" + "/script/" + "player.py", Spotimension.onReceivePlayerStatus);
+    
+    oFeatureHub.unsubscribe("detector");
+    oFeatureHub.subscribe("detector", sMachineId + "/app/" + "com.machineblocks.machines.spotimension.phapp" + "/script/" + "detector.py", Spotimension.onDetectTag);
+
+    oFeatureHub.send({ method: "startApp" }, { app: {url: (new URL("app.json", location.origin + location.pathname.replace("webapp", "phapp"))).toString()} });
+
+    //Spotimension.requestPlayerStatus();
 };
 
 Spotimension.updateConnectionStatus = function (sMachineId, bConnected) {
@@ -275,4 +333,64 @@ Spotimension.onReceiveDeviceStatus = function (oData, mHeaders) {
         }
     }
 
+};
+
+Spotimension.requestPlayerStatus = function(){
+    oFeatureHub.send({ method: "sendMessage", app: "com.machineblocks.machines.spotimension.phapp", script: "player.py" }, { action: "STATUS"});
+};
+
+Spotimension.requestDevices = function(){
+    oFeatureHub.send({ method: "sendMessage", app: "com.machineblocks.machines.spotimension.phapp", script: "player.py" }, { action: "GET_DEVICES"});
+};
+
+Spotimension.transferPlayback = function(sSpotifyDeviceId){
+    oFeatureHub.send({ method: "sendMessage", app: "com.machineblocks.machines.spotimension.phapp", script: "player.py" }, { action: "TRANSFER", data: {device_ids:[sSpotifyDeviceId]}});
+};
+
+Spotimension.onReceivePlayerStatus = function (oData, mHeaders) {
+    const elSpotifyDeviceSelect = document.getElementById("spotify-device-select");
+    elSpotifyDeviceSelect.disabled = true;
+    elSpotifyDeviceSelect.innerHTML = "";
+
+    if(oData.state.devices){
+        let elOpt;
+        const aDevices = oData.state.devices;
+        for(let i = 0; i < aDevices.length; i++){ 
+            const oDevice = aDevices[i];
+            elOpt = document.createElement('option');
+
+            elOpt.value = oDevice.id;
+            elOpt.innerHTML = oDevice.name + (oDevice.is_active ? " (active)" : "");
+            elOpt.selected = oDevice.is_active;
+            elSpotifyDeviceSelect.appendChild(elOpt);
+        }
+
+        elSpotifyDeviceSelect.disabled = false;
+    }
+
+    console.log("PLAYER_STATUS", oData);
+};
+
+Spotimension.onDetectTag = function (oData, mHeaders) {
+    console.log("TAG", oData);
+
+    const sTag = oData.state.tag,
+        elTagImage = document.getElementById("tag-img");
+
+    if(sTag){
+        const oTag = Spotimension.tags[sTag];
+
+        console.log("Tag", oTag);
+        document.body.style.backgroundImage = "url('" + oTag.background + "')";
+        elTagImage.src = oTag.image;
+
+        oFeatureHub.send({ method: "sendMessage", app: "com.machineblocks.machines.spotimension.phapp", script: "player.py" }, { action: "PLAY", data: oTag.audio.spotify});
+    }
+    else{
+        document.body.style.backgroundImage = "url('./img/bg.jpeg')";
+        elTagImage.src = "";
+
+        oFeatureHub.send({ method: "sendMessage", app: "com.machineblocks.machines.spotimension.phapp", script: "player.py" }, { action: "PAUSE"});
+    }
+   
 };

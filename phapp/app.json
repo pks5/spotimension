@@ -1,12 +1,13 @@
 {
     "app" : {
-        "version": "0.9.2",
-        "id": "com.machineblocks.machines.spotimension.detector",
-        "name": "Button & Led"
+        "version": "0.9.17",
+        "id": "com.machineblocks.machines.spotimension.phapp",
+        "name": "Detector"
     },
 
     "scripts" : [
-        { "path": "detector.py", "executable": true, "gpio": "rpi2"}
+        { "path": "detector.py", "executable": true, "gpio": "rpi2"},
+        { "path": "player.py", "executable": true, "gpio": "rpi2"}
     ]
 
 }
