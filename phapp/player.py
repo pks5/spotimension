@@ -2,6 +2,7 @@ import gpiozero
 import json
 import sys
 import time
+import os
 import threading
 import requests
 from requests.auth import HTTPBasicAuth
@@ -12,10 +13,9 @@ class Player:
         self.state = {}
         self.settings = {
             "notify_url": "fhtp://broadcast/{DEVICE}/app/{APP}/script/{SCRIPT}",
-            "spotify_client_id": "9b64281617ef4fc8b84a0eb6e8d9e18f",
-            "spotify_client_secret": "ec289893133346a1be787a5be807ae03",
             "transfer_sleep": 1
         }
+        self.config = None
         
     def send(self, data):
         payload = {
@@ -35,7 +35,7 @@ class Player:
     
     def request_token(self, auth_code, redirect_uri):
         r = requests.post("https://accounts.spotify.com/api/token", 
-                auth=HTTPBasicAuth(self.settings["spotify_client_id"], self.settings["spotify_client_secret"]), 
+                auth=HTTPBasicAuth(self.config["spotify"]["client_id"], self.config["spotify"]["client_secret"]), 
                 data={
                     "code":  auth_code,
                     "redirect_uri": redirect_uri,
@@ -185,6 +185,9 @@ class Player:
                 return
     
     def init(self):
+        f = open(os.path.expanduser("~") + '/.config/spotimension/spotimension-conf.json')
+        self.config = json.load(f)
+        
         self.update_state()
         print("Initialized player.", flush=True)
 

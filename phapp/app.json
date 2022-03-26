@@ -1,6 +1,6 @@
 {
     "app" : {
-        "version": "0.9.17",
+        "version": "0.9.19",
         "id": "com.machineblocks.machines.spotimension.phapp",
         "name": "Detector"
     },
